@@ -94,7 +94,7 @@ On the right hand side of each row is a bit of HTML text representing the rubric
 
 When you are finished grading, you can directly download the CSV file you were grading on and upload it to PrairieLearn. On the assignment tab you were using, click on `Uploads`, and then `Upload new question scores`. **DO NOT CLICK THE OTHER UPLOAD BUTTON**, as this modifies assignment-wide scores.
 
-![pl](readme_images/pl.png)
+![pl](readme_images/pl_new.png)
 
 Simply upload the CSV and hit `Upload`. The grades and feedback will then be automatically applied.
 
