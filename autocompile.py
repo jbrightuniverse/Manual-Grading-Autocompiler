@@ -17,9 +17,9 @@ import os
 import sys
 import json
 
-COURSE_NAME = "CPSC_213_2021W1" # the name of the course on PrairieLearn
+COURSE_NAME = "CPSC_213_2021W2" # the name of the course on PrairieLearn
 MAX_ASSIGNMENT = 11 # maximum assignment number, just as a bounds check
-GRADE_ALL_SUBMISSIONS = True # change this to True if you wish to grade all submissions rather than only the ones that have not been autograded
+GRADE_ALL_SUBMISSIONS = False # change this to True if you wish to grade all submissions rather than only the ones that have not been autograded
 # relevant for assignments where the autograder only checks for completion and not correctness
 
 
