@@ -100,7 +100,7 @@ Simply upload the CSV and hit `Upload`. The grades and feedback will then be aut
 
 ## DEBUGGING: Broken Zips
 
-In the event that opening a zip file produces the error of the form "cannot open" or "invalid folder" or similar unopenable errors, this means a student has created a group name. For this, you will need to first save the zip file to your computer and identify on PrairieLearn what the group name's name is.
+In the event that opening a zip file produces the error of the form "cannot open" or "invalid folder" or similar unopenable errors, this means a student has created a irregularly sized or formatted group name. For this, you will need to first save the zip file to your computer and identify on PrairieLearn what the group name's name is.
 
 Then, in the same folder as the zip file, run:
 `zip -d filename.zip 'first_few_chars_of_groupname*'`
