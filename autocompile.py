@@ -16,31 +16,34 @@ from shutil import copyfile
 import os
 import sys
 import json
+import argparse
 
 COURSE_NAME = "CPSC_213_2021W2" # the name of the course on PrairieLearn
 MAX_ASSIGNMENT = 11 # maximum assignment number, just as a bounds check
-GRADE_ALL_SUBMISSIONS = False # change this to True if you wish to grade all submissions rather than only the ones that have not been autograded
-# relevant for assignments where the autograder only checks for completion and not correctness
 
+# Commandline UI setup
+parser = argparse.ArgumentParser(description="Convert PrairieLearn's manual grading files to grader-friendly targeted CSVs. \n" + 
+"Before running, ensure that:\n" +
+" - A file called AX_rubric.json exists in the parent directory \n" +
+" - A PL .csv grading file exists in the parent directory \n" +
+" - You have unzipped the contents of the manual grading zip file from PL in the parent directory", formatter_class=argparse.RawTextHelpFormatter)
+parser.add_argument('assignment_num', type=int, help='The assignment number')
+parser.add_argument('-g', '--gradeall', action='store_true', default=False, help='Set flag if you wish to grade ALL questions. Do not set flag if you wish to only mark non-autograded questions')
+parser.add_argument('-d', '--directory', type=str, metavar='PATH', help="Set path to parent directory of assignment files. Defaults to AX where X is the assignment number.")
+parser.add_argument('-c', '--coursename', type=str, metavar='COURSE', default=str(COURSE_NAME), help=f'Set the course name prefix. Default value "{COURSE_NAME}" can be edited in the script source code')
 
-# verify that an assignment number was given on the command line
-# should just be a number, no "A"
-try:
-    assignment = sys.argv[1]
-except:
-    print("USAGE: python3 autocompile.py <assignment_number>")
-    sys.exit()
+namespace = parser.parse_args()
+assignment = namespace.assignment_num
+gradeAllSubmissions = namespace.gradeall
+if(namespace.directory):
+    pathToParentDir = namespace.directory
+else:
+    pathToParentDir = "A" + str(assignment)
+courseName = namespace.coursename
 
-# assignment should be an integer
-try:
-    assignment = int(assignment)
-except:
-    print("Assignment must be an integer!")
-    sys.exit()
-
-# assignment should be valid
-if assignment not in range(1, MAX_ASSIGNMENT+1):
-    print("Invalid assignment ID.")
+# Existence check for parent directory
+if not os.path.exists(pathToParentDir):
+    print(f'Invalid path to parent directory: "{pathToParentDir}"')
     sys.exit()
 
 # SAFETY GUARD: if the grading files already exist, suspend the program to prevent in-progress CSV files from being overwritten
@@ -48,17 +51,35 @@ if assignment not in range(1, MAX_ASSIGNMENT+1):
 # to unlock safety guard, delete the 'AX_to_grade' folder created by the program
 try:
     # if the files don't exist, create a folder of the form 'AX/AX_to_grade' where X is the assignment number
-    os.mkdir(f"A{assignment}/A{assignment}_to_grade")
-except: 
+    os.mkdir(f"{pathToParentDir}/A{assignment}_to_grade")
+except:
     print("GRADING IN PROGRESS, FILE SUSPENDED.")
     sys.exit()
 
-assignmentcollector = defaultdict(list)
+# Existence check for rubric file
+if not os.path.exists(f"{pathToParentDir}/A{assignment}_rubric.json"):
+    print(f'No Rubric json was found under:"{pathToParentDir}"')
+    sys.exit()
 
-with open(f"A{assignment}/A{assignment}_rubric.json") as f:
+# Load rubric data
+with open(f"{pathToParentDir}/A{assignment}_rubric.json") as f:
     rubric_json = json.load(f)
 
-the_grading_filename = [f"A{assignment}/{COURSE_NAME}_A{assignment}_submissions_for_manual_grading.csv", f"A{assignment}/{COURSE_NAME}_A{assignment}_final_submissions.csv"][GRADE_ALL_SUBMISSIONS == True]
+assignmentcollector = defaultdict(list)
+
+
+the_grading_filename = [f"{pathToParentDir}/{courseName}_A{assignment}_submissions_for_manual_grading.csv", f"A{assignment}/{COURSE_NAME}_A{assignment}_final_submissions.csv"][gradeAllSubmissions == True]
+
+# Existence check for grading csv file
+if not os.path.exists(the_grading_filename):
+    print(f'No grading csv file found under:"{pathToParentDir}"')
+    sys.exit()
+
+# Existence check for unzipped submissions folder
+if not os.path.exists(f"{pathToParentDir}/Assignment{assignment}"):
+    print(f'No Unzipped submission folder found under:"{pathToParentDir}". Ensure file name has format AssignmentX, where X is the assignment number')
+    sys.exit()
+
 with open(the_grading_filename) as f:
     lines = csv.reader(f, delimiter = ',', quotechar = '"')
     rows = [l for l in lines]
@@ -71,13 +92,13 @@ with open(the_grading_filename) as f:
 
     # for all submissions in the csv:
     for row in rows[1:]:
-        if GRADE_ALL_SUBMISSIONS == True or row[keys.index("old_feedback")] == '':
+        if gradeAllSubmissions == True or row[keys.index("old_feedback")] == '':
             # sort the questions of each student into a folder-specific file
             # only require important data: uid, qid, points, feedback
             # the dummy field with key "instance" and value 1 needs to exist in every row
-            QID_NAME = ["qid", "Question"][GRADE_ALL_SUBMISSIONS == True]
-            GROUP_NAME = ["group_name", "Group name"][GRADE_ALL_SUBMISSIONS == True]
-            UID_NAME = ["uid", "UID"][GRADE_ALL_SUBMISSIONS == True]
+            QID_NAME = ["qid", "Question"][gradeAllSubmissions == True]
+            GROUP_NAME = ["group_name", "Group name"][gradeAllSubmissions == True]
+            UID_NAME = ["uid", "UID"][gradeAllSubmissions == True]
             
             # generate some precompiled feedback
             feedback = "Rubric:</br></br>" + "</br>".join(rubric_json[row[keys.index(QID_NAME)]]["general_comment"]) + "</br></br>"
@@ -94,15 +115,15 @@ with open(the_grading_filename) as f:
 
         # THIS BUILDS THE ACTUAL QUESTION-SPECIFIC FILE
         try:
-            os.mkdir(f"A{assignment}/A{assignment}_to_grade/{key.split('/')[0]}")
+            os.mkdir(f"{pathToParentDir}/A{assignment}_to_grade/{key.split('/')[0]}")
         except: pass # make an assignment-specific folder - some assignments take questions from more than one "assignment bank"
 
         try:
-            os.mkdir(f"A{assignment}/A{assignment}_to_grade/{key}")
+            os.mkdir(f"{pathToParentDir}/A{assignment}_to_grade/{key}")
         except: pass # question-specific subfolder
 
         # THIS CONSTRUCTS THE CSV
-        with open(f"A{assignment}/A{assignment}_to_grade/{key}/{key.replace('/', '_')}_TO_GRADE.csv", "w", newline = '') as f2:
+        with open(f"{pathToParentDir}/A{assignment}_to_grade/{key}/{key.replace('/', '_')}_TO_GRADE.csv", "w", newline = '') as f2:
             writer = csv.writer(f2, delimiter=',', quotechar='"', quoting=csv.QUOTE_MINIMAL) 
 
             # put the CSV key into the file
@@ -116,27 +137,27 @@ with open(the_grading_filename) as f:
             print("    copying " + row[0])
             try:
                 # create a group/student-specific folder within the question subfolder
-                os.mkdir(f"A{assignment}/A{assignment}_to_grade/{key}/{row[0]}")
+                os.mkdir(f"{pathToParentDir}/A{assignment}_to_grade/{key}/{row[0]}")
             except: pass # again, skip if exists
 
-            for foldername in os.listdir(f"A{assignment}/Assignment{assignment}"):
-                amount_to_remove = [1, 2][GRADE_ALL_SUBMISSIONS == True]
+            for foldername in os.listdir(f"{pathToParentDir}/Assignment{assignment}"):
+                amount_to_remove = [1, 2][gradeAllSubmissions == True]
                 if "_".join(foldername.split("_")[:-amount_to_remove]) == row[0]:
                     target_assignment = foldername.split("_")[-1]
                     for filename in os.listdir(f"A{assignment}/Assignment{assignment}/{foldername}"):
                         if (target_assignment+"/"+filename).startswith(key):
-                            copyfile(f"A{assignment}/Assignment{assignment}/{foldername}/{filename}", f"A{assignment}/A{assignment}_to_grade/{key}/{row[0]}/{filename}")
+                            copyfile(f"{pathToParentDir}/Assignment{assignment}/{foldername}/{filename}", f"A{assignment}/A{assignment}_to_grade/{key}/{row[0]}/{filename}")
 
 # CREATE TXT FILES WITH SUBMISSION TEXT IN THEM FOR EASY VIEWING
-for sub_assignment in os.listdir(f"A{assignment}/A{assignment}_to_grade"):
+for sub_assignment in os.listdir(f"{pathToParentDir}/A{assignment}_to_grade"):
     print(sub_assignment, "producing TXT file...")
-    for question in os.listdir(f"A{assignment}/A{assignment}_to_grade/{sub_assignment}"):
+    for question in os.listdir(f"{pathToParentDir}/A{assignment}_to_grade/{sub_assignment}"):
         print(f"    {question}")
-        with open(f"A{assignment}/A{assignment}_to_grade/{sub_assignment}/{question}/{sub_assignment+'_'+question}_aggregate_submissions.txt", "w", encoding='latin-1') as f:
+        with open(f"{pathToParentDir}/A{assignment}_to_grade/{sub_assignment}/{question}/{sub_assignment+'_'+question}_aggregate_submissions.txt", "w", encoding='latin-1') as f:
             collected_cwls = []
-            for cwl in os.listdir(f"A{assignment}/A{assignment}_to_grade/{sub_assignment}/{question}"):
+            for cwl in os.listdir(f"{pathToParentDir}/A{assignment}_to_grade/{sub_assignment}/{question}"):
                 # check that this is actually a CWL folder
-                if os.path.isdir(f"A{assignment}/A{assignment}_to_grade/{sub_assignment}/{question}/{cwl}"):
+                if os.path.isdir(f"{pathToParentDir}/A{assignment}_to_grade/{sub_assignment}/{question}/{cwl}"):
                     collected_cwls.append(cwl)
             collected_cwls.sort(key = lambda x: x.lower()) # alphabetical sort
             for cwl in collected_cwls:
@@ -144,7 +165,7 @@ for sub_assignment in os.listdir(f"A{assignment}/A{assignment}_to_grade"):
                 f.write("***************************************************************************\n")
                 f.write("***\n")
                 f.write("*** CWL or NAME: " + cwl + "\n")
-                for codefile in os.listdir(f"A{assignment}/A{assignment}_to_grade/{sub_assignment}/{question}/{cwl}"):
+                for codefile in os.listdir(f"{pathToParentDir}/A{assignment}_to_grade/{sub_assignment}/{question}/{cwl}"):
                     f.write("***\n")
                     f.write("----- BEGIN NEW FILE ------------------------------------------------------\n")
                     filename = "_".join(codefile.replace(question + "_", "").split("_")[1:])
@@ -153,7 +174,7 @@ for sub_assignment in os.listdir(f"A{assignment}/A{assignment}_to_grade"):
                     f.write("***\n")
                     f.write("***\n")
                     f.write("***\n")
-                    with open(f"A{assignment}/A{assignment}_to_grade/{sub_assignment}/{question}/{cwl}/{codefile}",encoding='latin-1') as f2:
+                    with open(f"{pathToParentDir}/A{assignment}_to_grade/{sub_assignment}/{question}/{cwl}/{codefile}",encoding='latin-1') as f2:
                         for line in f2:
                             f.write(line)
                     f.write("***\n")
