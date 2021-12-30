@@ -4,7 +4,7 @@ James Yuming Yu, 2021
 
 github: jbrightuniverse
 
-This is a Python utility for converting general manual grading data from PrairieLearn into CSV files that TAs can use to grade and directly upload to PrairieLearn.
+This is a Python utility for converting general manual grading data from PrairieLearn into per-question CSV files (instead of just one) (including text files containing each submission) that TAs can use to grade and directly upload to PrairieLearn.
 
 It is recommended to use this utility on a course account through department servers as this ensures security of student data and provides a central location for TAs to access grading files.
 
