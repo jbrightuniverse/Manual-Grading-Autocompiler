@@ -8,6 +8,8 @@ This is a Python utility for converting general manual grading data from Prairie
 
 It is recommended to use this utility on a course account through department servers as this ensures security of student data and provides a central location for TAs to access grading files.
 
+If you are having issues getting the program to work, scroll down to the DEBUGGING section.
+
 ## Step 1: Insert Python script into remote server
 
 Copy `autocompile.py` into the server under the folder `YEAR/grading`. This should look something like:
@@ -97,6 +99,10 @@ When you are finished grading, you can directly download the CSV file you were g
 ![pl](readme_images/pl_new.png)
 
 Simply upload the CSV and hit `Upload`. The grades and feedback will then be automatically applied.
+
+## DEBUGGING: Empty text files/assignment folders
+
+If the program produces completely empty folder structures, this may be because PrairieLearn changed the naming format of the folders in the manual grading folder. Inside the `.py` file is a line containing counters for the expected number of underscores under each grading mode; adjust these based on the number of underscores you see in the foldernames.
 
 ## DEBUGGING: Broken Zips
 
