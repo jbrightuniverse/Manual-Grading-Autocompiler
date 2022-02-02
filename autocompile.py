@@ -141,7 +141,9 @@ with open(the_grading_filename) as f:
             except: pass # again, skip if exists
 
             for foldername in os.listdir(f"{pathToParentDir}/Assignment{assignment}"):
-                amount_to_remove = [1, 2][gradeAllSubmissions == True]
+                # the 2s below represent the number of underscores in the folder names in the manual grading folder. 
+                # adjust them if the number of underscores changes in a later release.
+                amount_to_remove = [2, 2][gradeAllSubmissions == True]
                 if "_".join(foldername.split("_")[:-amount_to_remove]) == row[0]:
                     target_assignment = foldername.split("_")[-1]
                     for filename in os.listdir(f"A{assignment}/Assignment{assignment}/{foldername}"):
